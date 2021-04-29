@@ -10,22 +10,15 @@ namespace RockPaperCisor.Domain.Domain
 
         public RoundState State { get; set; }
 
-        public Hand Player1Vote { get; private set; } = default;
+        public Hand Player1Vote { get; private set; }
 
-        public Hand Player2Vote { get; private set; } = default;
+        public Hand Player2Vote { get; private set; }
 
         public Winner Winner => GetWinner();
 
-        private Round()
+        internal Round()
         {
             Id = Guid.NewGuid();
-            State = RoundState.WaitingForAnswer;
-        }
-
-        public static Round CreateRound()
-        {
-            var round = new Round();
-            return round;
         }
 
         public void SetPlayer1Vote(Hand vote) => Player1Vote = vote;
@@ -46,13 +39,5 @@ namespace RockPaperCisor.Domain.Domain
             }
             return Winner.Player2;
         }
-
-        public void Stop() => State = RoundState.Done;
-
-        public bool AllPlayersVoted => Player1HasVoted && Player2HasVoted;
-
-        private bool Player1HasVoted => Player1Vote != default;
-
-        private bool Player2HasVoted => Player2Vote != default;
     }
 }

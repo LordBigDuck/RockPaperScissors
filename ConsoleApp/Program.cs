@@ -33,7 +33,7 @@ namespace ConsoleApp
                 var winner = GetLastRoundWinner(match);
                 ShowRoundWinner(winner);
 
-                var matchWinner = match.GetWinner();
+                var matchWinner = match.ComputeWinner();
                 if (matchWinner.IsSuccess)
                 {
                     ShowMatchWinner(matchWinner.Value);

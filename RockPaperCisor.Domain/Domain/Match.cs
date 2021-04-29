@@ -26,39 +26,38 @@ namespace RockPaperCisor.Domain.Domain
         {
             Player1 = player1;
             Player2 = player2;
-            State = GameState.Starting;
+
+            StartNewRound();
         }
 
-        public static Result<Match> Create(Player player1, Player player2)
+        public static Result<Match> CreateMatch(Player firstPlayer, Player secondPlayer)
         {
-            if (player1 == null || player2 == null)
+            if (firstPlayer == null || secondPlayer == null)
             {
                 return Result.Fail("Player should exist");
             }
 
-            if (player1.IsIdentical(player2))
+            if (firstPlayer.IsIdentical(secondPlayer))
             {
-                return Result.Fail("Player should be different");
+                return Result.Fail("Players should be different");
             }
 
-            var match = new Match(player1, player2);
+            var match = new Match(firstPlayer, secondPlayer);
             return Result.Ok(match);
         }
 
-        public Result StartNewRound()
+        private Result StartNewRound()
         {
             if (MatchIsFinished)
             {
                 return Result.Fail("Match is finished");
             }
 
-            var newRound = Round.CreateRound();
-            _rounds.Add(newRound);
-
+            _rounds.Add(new Round());
             return Result.Ok();
         }
 
-        public Result<Player> GetWinner()
+        public Result<Player> ComputeWinner()
         {
             if (TotalOfRoundsPlayed < MustWinNumber)
             {
@@ -67,62 +66,53 @@ namespace RockPaperCisor.Domain.Domain
 
             if (Player1WonRounds >= MustWinNumber)
             {
-                State = GameState.Done;
                 return Result.Ok(Player1);
             }
 
             if (Player2WonRounds >= MustWinNumber)
             {
-                State = GameState.Done;
                 return Result.Ok(Player2);
             }
 
             if (IsTie)
             {
-                State = GameState.Done;
                 return Result.Ok();
             }
 
             return Result.Fail("Game is not ended");
         }
 
-        public Result SetPlayerVote(Player player, Hand vote)
+        public Player GetWinner()
         {
-            var roundResult = GetPlayingRound();
-
-            if (roundResult.IsFailed)
+            var roundResult = CurrentRound.Winner;
+            if (roundResult == Winner.None)
             {
-                return Result.Fail("Round not found");
+                return null;
             }
 
-            var round = roundResult.Value;
+            if (roundResult == Winner.Player1)
+            {
+                return Player1;
+            }
+
+            return Player2;
+        }
+
+        public Result SetPlayerVote(Player player, Hand vote)
+        {
             if (IsPlayer1(player))
             {
-                round.SetPlayer1Vote(vote);
+                CurrentRound.SetPlayer1Vote(vote);
                 return Result.Ok();
             }
 
             if (IsPlayer2(player))
             {
-                round.SetPlayer2Vote(vote);
+                CurrentRound.SetPlayer2Vote(vote);
                 return Result.Ok();
             }
 
             return Result.Fail("Player is not in the game");
-        }
-
-        public Result EndPlayingRound()
-        {
-            var roundResult = GetPlayingRound();
-
-            if (roundResult.IsFailed)
-            {
-                return Result.Fail("Round not found");
-            }
-
-            var round = roundResult.Value;
-            round.Stop();
-            return Result.Ok();
         }
 
         private const uint MaxRound = 5;
@@ -136,17 +126,6 @@ namespace RockPaperCisor.Domain.Domain
         private bool MatchIsFinished => State == GameState.Done || TotalOfRoundsPlayed >= MaxRound;
         private bool IsPlayer1(Player player) => Player1.Name == player.Name;
         private bool IsPlayer2(Player player) => Player2.Name == player.Name;
-
-        private Result<Round> GetPlayingRound()
-        {
-            var round = _rounds.SingleOrDefault(r => r.State == RoundState.WaitingForAnswer);
-
-            if (round == null)
-            {
-                return Result.Fail("No playing round");
-            }
-
-            return Result.Ok(round);
-        }
+        private Round CurrentRound => _rounds.Last();
     }
 }
